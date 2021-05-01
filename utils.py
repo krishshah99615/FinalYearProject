@@ -1,5 +1,7 @@
 from scipy.spatial import distance
 import mediapipe as mp
+from moviepy.editor import VideoFileClip, concatenate_videoclips
+import json
 import numpy as np
 def give_cord(results,index):
     x = results.left_hand_landmarks.landmark[index].x
@@ -34,4 +36,12 @@ def get_features(results,class_):
     
     f['class']=class_
     return f
-    
+def concat_gesture(g_list):
+    clips=[]
+    with open('clips.json','r') as f:
+        clipmap = json.load(f)
+
+    for g in g_list:
+        clips.append(VideoFileClip(clipmap[g]))
+    final_clip = concatenate_videoclips(clips)
+    final_clip.write_videofile("output.mp4")

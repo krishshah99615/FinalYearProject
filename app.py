@@ -2,7 +2,7 @@ import streamlit as st
 import mediapipe as mp
 import pandas as pd
 import os
-from utils import give_cord,give_vev,get_features_test,get_features
+from utils import give_cord,give_vev,get_features_test,get_features,concat_gesture
 import cv2
 import json
 import numpy as np
@@ -24,11 +24,12 @@ lang='en'
 
 st.header('Gesture Tool')
 st.text('Aiding disabled via AI')
-nav_menu = ['Module1 (gesture2audio/text)','Module2 (audio/text2animation)','SelfTraining']
-nav_select = st.sidebar.selectbox('Navigate',nav_menu,2)
+nav_menu = ['Module1 (gesture2audio/text/gesture)','SelfTraining']
+nav_select = st.sidebar.selectbox('Navigate',nav_menu)
 
-if nav_select =='Module1 (gesture2audio/text)': 
-    ouput_options = ['Audio']
+
+if nav_select =='Module1 (gesture2audio/text/gesture)': 
+    ouput_options = ['Audio','Animation']
     ouput_select = st.sidebar.radio("Audio Output",ouput_options)
 
     #Cache the model for testing 
@@ -82,7 +83,7 @@ if nav_select =='Module1 (gesture2audio/text)':
                     #Get the features and reshape it for model infernce
                     f = get_features_test(results)
                     f = np.array(list(f.values())).reshape(1,-1)
-
+ 
                     #Inference and Print the label
                     p=model.predict(f)
                     token=str(label_enc.inverse_transform([p[0]])[0])
@@ -98,6 +99,12 @@ if nav_select =='Module1 (gesture2audio/text)':
                             output=gTTS(" ".join(sent))
                             output.save("a.mp3")
                             playsound.playsound('a.mp3')
+                        elif ouput_select == 'Animation':
+                            sent.remove('Start')
+                            #concat_gesture(['Hello','Happy'])
+                            concat_gesture(sent)
+                            st.video('output.mp4')
+                        
                         sent = []
                     if rec:
                         if last_label !=token:
