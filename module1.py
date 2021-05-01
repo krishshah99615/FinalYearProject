@@ -24,7 +24,102 @@ st.text('Aiding disabled via AI')
 nav_menu = ['Module1 (gesture2audio/text)','Module2 (audio/text2animation)','SelfTraining']
 nav_select = st.sidebar.selectbox('Navigate',nav_menu,2)
 
-if nav_select == 'SelfTraining':
+if nav_select =='Module1 (gesture2audio/text)':
+    ouput_options = ['Text','Audio']
+    ouput_select = st.sidebar.radio("Select Output Type",ouput_options)
+
+    #Cache the model for testing 
+    @st.cache()
+    def load_model():
+        return pkl.load(open(MODEL_DIR+"/model.pkl",'rb'))
+    model = load_model()
+
+    #Load Label Encoder
+    label_enc=pkl.load(open("labelenc.pkl",'rb'))
+    
+    
+
+    #To print the Label detected
+    status = st.empty()
+
+    #checkboc for starting camera
+    start_cam=st.sidebar.checkbox("Start Camera")
+
+    
+    sent , rec ,last_label =[],False,''
+
+    #for displaying The incoming feed
+    image_disp=st.empty()
+
+    #initialize the keypoint model
+    mp_drawing = mp.solutions.drawing_utils
+    mp_full = mp.solutions.holistic
+
+    #Initialize webcam mdoel
+    cap = cv2.VideoCapture(0)
+
+    #only if the camera start is selected
+    if start_cam:
+        #use the holistic moddel for full body detection
+        with mp_full.Holistic(min_detection_confidence=0.5,min_tracking_confidence=0.5) as holistic:
+            while(1):
+
+                #read the camera feed
+                _, image = cap.read()
+
+                #RGB>BGR
+                image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+
+                #Inference from keypoint model
+                results = holistic.process(image)
+                
+                #If Left Hand is detected (right cuz mirror image LOL)
+                if results.left_hand_landmarks:
+
+                    #Get the features and reshape it for model infernce
+                    f = get_features_test(results)
+                    f = np.array(list(f.values())).reshape(1,-1)
+
+                    #Inference and Print the label
+                    p=model.predict(f)
+                    token=str(label_enc.inverse_transform([p[0]])[0])
+                    status.title(token)
+                    
+                    if token=="Start":
+                        rec =True
+                    
+                    if token == "Stop":
+                        rec = False
+                        st.sidebar.text(" ".join(sent))
+                        #print(" ".join(sent))
+                        sent = []
+                    if rec:
+                        if last_label !=token:
+                            sent.append(token)
+                            last_label=token
+                    
+
+
+
+                else:
+                    #if no hand is detected
+                    status.title(None)
+                #Draw the mesh and keyponts
+                mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_full.HAND_CONNECTIONS)
+            
+                #Display the camera feed
+                image_disp.image(image,use_column_width=True)
+    else:
+        cap.release()
+
+
+
+
+
+
+
+
+elif nav_select == 'SelfTraining':
     train_menu = ['Collecting','Training','Testing']
     train_select=st.sidebar.selectbox('Model Making Phase',train_menu)
 
