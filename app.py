@@ -1,34 +1,44 @@
-import streamlit as st 
-import mediapipe as mp
-import pandas as pd
-import os
-from utils import give_cord,give_vev,get_features_test,get_features,concat_gesture
-import cv2
-import json
-import numpy as np
-from sklearn.neural_network import MLPClassifier
-import pickle as pkl 
-import glob
-from sklearn import preprocessing
-from sklearn.neural_network import MLPClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report,confusion_matrix,accuracy_score
+import streamlit as st   # For Gui
+import mediapipe as mp   # For Keypoint Detection
+import pandas as pd      # For Data Manipulation
+import os                # Operating Sys Operations
+from utils import give_cord,give_vev,get_features_test,get_features,concat_gesture    #Custom Fucntions
+import cv2                # Image manipulation and  webcam 
+import json               # Json processing
+import numpy as np        # numerical processing
+import pickle as pkl       # Storing models n label encoder
+import glob                # Finding perticular extention file
+
+from sklearn import preprocessing 
+from sklearn.neural_network import MLPClassifier # Nueral Network
+from sklearn.model_selection import train_test_split # Preprocessing steps
+from sklearn.metrics import classification_report,confusion_matrix,accuracy_score # Evaluation metrics
+
+# Plotting libraries
 import seaborn as sns
 import matplotlib.pyplot as plt
+
+# Audio Libraires
 from gtts import gTTS
 import playsound
 
+# Setting the paths
 MODEL_DIR='model'
 GESTURE_DIR='gestures'
 lang='en'
 
+# basic html tags
 st.header('Gesture Tool')
 st.text('Aiding disabled via AI')
+
+# different navigations pages
 nav_menu = ['Module1 (gesture2audio/text/gesture)','SelfTraining']
 nav_select = st.sidebar.selectbox('Navigate',nav_menu)
 
-
+# Module 1 n 2
 if nav_select =='Module1 (gesture2audio/text/gesture)': 
+    
+    # Set the ouput options apart form text
     ouput_options = ['Audio','Animation']
     ouput_select = st.sidebar.radio("Audio Output",ouput_options)
 
@@ -49,7 +59,7 @@ if nav_select =='Module1 (gesture2audio/text/gesture)':
     #checkboc for starting camera
     start_cam=st.sidebar.checkbox("Start Camera")
 
-    
+    #sentece list , recording boolean , last label predicted
     sent , rec ,last_label =[],False,''
 
     #for displaying The incoming feed
@@ -89,16 +99,23 @@ if nav_select =='Module1 (gesture2audio/text/gesture)':
                     token=str(label_enc.inverse_transform([p[0]])[0])
                     status.title(token)
                     
+                    # If start symbol
                     if token=="Start":
+                        #recording start
                         rec =True
                     
+                    # If stop symbol reset the sentence 
                     if token == "Stop":
                         rec = False
                         st.sidebar.text(" ".join(sent))
+                        
+                        #Play audio
                         if ouput_select == 'Audio':
                             output=gTTS(" ".join(sent))
                             output.save("a.mp3")
                             playsound.playsound('a.mp3')
+                        
+                        #Concat clips n play clips of animation
                         elif ouput_select == 'Animation':
                             sent.remove('Start')
                             #concat_gesture(['Hello','Happy'])
@@ -106,6 +123,7 @@ if nav_select =='Module1 (gesture2audio/text/gesture)':
                             st.video('output.mp4')
                         
                         sent = []
+                    # To ensure labels dont repeat concecutively
                     if rec:
                         if last_label !=token:
                             sent.append(token)
@@ -131,11 +149,14 @@ if nav_select =='Module1 (gesture2audio/text/gesture)':
 
 
 
-
+# Module 3
 elif nav_select == 'SelfTraining':
+    # Model building steps navigation 
+    # Collect data > Train model n Evaluate > Test Model 
     train_menu = ['Collecting','Training','Testing']
     train_select=st.sidebar.selectbox('Model Making Phase',train_menu)
-
+    
+    # Testing Phase
     if train_select == 'Testing':
         #Cache the model for testing 
         @st.cache()
@@ -199,10 +220,11 @@ elif nav_select == 'SelfTraining':
                     image_disp.image(image,use_column_width=True)
         else:
             cap.release()
-
+    # Training Phase
     elif train_select == 'Training':
         status = st.empty()
-
+        
+        #Load all json features stored
         df=pd.DataFrame()
         for json_file_loc in glob.glob(f"{GESTURE_DIR}/*.json"):
             df = df.append(pd.read_json(json_file_loc))
@@ -216,29 +238,37 @@ elif nav_select == 'SelfTraining':
         
         label_encoder = preprocessing.LabelEncoder() 
         df['class']= label_encoder.fit_transform(df['class'])
-
+        
+        
+        # Custom Trainig Neura Network
         test_ratio=st.sidebar.slider("Test Ratio",0.1,0.9,0.3,0.1,"%f%%")
         layers = int(st.sidebar.slider("Layers",1,5,3,1))
         neurons = int(st.sidebar.slider("Neurons",10,50,30,5))
         layout=[]
         for layer in range(layers):
             layout.append(neurons)
+        
         mlp = MLPClassifier(hidden_layer_sizes=tuple(layout))
-
+        
+        # Preprocsiing
         X = df.drop('class',axis=1)
         y = df['class']
         X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=float(test_ratio))
 
+        #start trianing 
         start_train=st.sidebar.checkbox("Start Training")
         if start_train:
+            #Train
             mlp.fit(X_train,y_train)
             
+            # Save model
             with open(f'{MODEL_DIR}/model.pkl', 'wb') as fh:
                 pkl.dump(mlp, fh)
+            # Save Label encoder
             with open('labelenc.pkl', 'wb') as fh:
                 pkl.dump(label_encoder, fh)
             status.success("Model Saved at "+f'{MODEL_DIR}/model.pkl')
-        
+            # Predict for evaluation
             predictions = mlp.predict(X_test)
             acc = accuracy_score(y_test,predictions)
             st.subheader("Test Accuracy :"+str(acc*100)+"%")
@@ -252,7 +282,8 @@ elif nav_select == 'SelfTraining':
             fig, ax = plt.subplots(figsize=(3,3))
             sns.heatmap(cm,cbar=False,annot=True,xticklabels=list(label_encoder.classes_),yticklabels=list(label_encoder.classes_))
             st.write(fig)
-
+    
+    # Data Collection Phase
     elif train_select=='Collecting':
 
         #Initialize empty list for json
