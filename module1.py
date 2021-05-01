@@ -207,16 +207,20 @@ elif nav_select == 'SelfTraining':
         st.table(df.head())
 
         
-        label_encoder = preprocessing.LabelEncoder()
+        label_encoder = preprocessing.LabelEncoder() 
         df['class']= label_encoder.fit_transform(df['class'])
 
         test_ratio=st.sidebar.slider("Test Ratio",0.1,0.9,0.3,0.1,"%f%%")
-
-        mlp = MLPClassifier(hidden_layer_sizes=(30,30,30))
+        layers = int(st.sidebar.slider("Layers",1,5,3,1))
+        neurons = int(st.sidebar.slider("Neurons",10,50,30,5))
+        layout=[]
+        for layer in range(layers):
+            layout.append(neurons)
+        mlp = MLPClassifier(hidden_layer_sizes=tuple(layout))
 
         X = df.drop('class',axis=1)
         y = df['class']
-        X_train, X_test, y_train, y_test = train_test_split(X, y)
+        X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=float(test_ratio))
 
         start_train=st.sidebar.checkbox("Start Training")
         if start_train:
