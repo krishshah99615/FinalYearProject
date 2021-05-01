@@ -15,18 +15,21 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report,confusion_matrix,accuracy_score
 import seaborn as sns
 import matplotlib.pyplot as plt
+from gtts import gTTS
+import playsound
 
 MODEL_DIR='model'
 GESTURE_DIR='gestures'
+lang='en'
 
 st.header('Gesture Tool')
 st.text('Aiding disabled via AI')
 nav_menu = ['Module1 (gesture2audio/text)','Module2 (audio/text2animation)','SelfTraining']
 nav_select = st.sidebar.selectbox('Navigate',nav_menu,2)
 
-if nav_select =='Module1 (gesture2audio/text)':
-    ouput_options = ['Text','Audio']
-    ouput_select = st.sidebar.radio("Select Output Type",ouput_options)
+if nav_select =='Module1 (gesture2audio/text)': 
+    ouput_options = ['Audio']
+    ouput_select = st.sidebar.radio("Audio Output",ouput_options)
 
     #Cache the model for testing 
     @st.cache()
@@ -91,7 +94,10 @@ if nav_select =='Module1 (gesture2audio/text)':
                     if token == "Stop":
                         rec = False
                         st.sidebar.text(" ".join(sent))
-                        #print(" ".join(sent))
+                        if ouput_select == 'Audio':
+                            output=gTTS(" ".join(sent))
+                            output.save("a.mp3")
+                            playsound.playsound('a.mp3')
                         sent = []
                     if rec:
                         if last_label !=token:
