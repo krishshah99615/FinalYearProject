@@ -45,15 +45,20 @@ nav_select = st.sidebar.selectbox('Navigate',nav_menu)
 
 #Module 2:
 if nav_select=='text/audio2speech':
+    #Select input mode
+    
     input_options = ['Audio','Text']
     input_select = st.sidebar.radio("Audio Output",input_options)
+    #iniiltialse empty sentence input
     inp = ''
+    
     if input_select == 'Text':
+        #If input is text
         inp = st.sidebar.text_input("Sentence")
     if input_select == 'Audio':
         
-        st.header("1. Record your own voice")
-
+        st.header("Record your own voice")
+        ##reecord voice
         if st.button(f"Click to Record"):
             record_state = st.text("Recording...")
             duration = 5  # seconds
