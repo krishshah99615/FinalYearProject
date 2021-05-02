@@ -1,0 +1,14 @@
+streamlit
+mediapipe
+cmake
+playsound
+moviepy
+sklearn
+wavio
+librosa
+matplotlib
+opencv-python
+seaborn
+gtts
+SpeechRecognition
+sounddevice
