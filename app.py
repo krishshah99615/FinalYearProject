@@ -22,6 +22,12 @@ import matplotlib.pyplot as plt
 from gtts import gTTS
 import playsound
 
+
+import librosa
+import streamlit as st
+from helper import create_spectrogram, read_audio, record, save_record
+import speech_recognition as sr
+
 # Setting the paths
 MODEL_DIR='model'
 GESTURE_DIR='gestures'
@@ -32,14 +38,63 @@ st.header('Gesture Tool')
 st.text('Aiding disabled via AI')
 
 # different navigations pages
-nav_menu = ['Module1 (gesture2audio/text/gesture)','SelfTraining']
+nav_menu = ['gesture2audio','text/audio2speech','SelfTraining']
+
 nav_select = st.sidebar.selectbox('Navigate',nav_menu)
 
-# Module 1 n 2
-if nav_select =='Module1 (gesture2audio/text/gesture)': 
+
+#Module 2:
+if nav_select=='text/audio2speech':
+    input_options = ['Audio','Text']
+    input_select = st.sidebar.radio("Audio Output",input_options)
+    inp = ''
+    if input_select == 'Text':
+        inp = st.sidebar.text_input("Sentence")
+    if input_select == 'Audio':
+        
+        st.header("1. Record your own voice")
+
+        if st.button(f"Click to Record"):
+            record_state = st.text("Recording...")
+            duration = 5  # seconds
+            fs = 48000
+            filename='input'
+            myrecording = record(duration, fs)
+            record_state.text(f"Saving sample as {filename}.mp3")
+
+            path_myrecording = f"{filename}.wav"
+
+            save_record(path_myrecording, myrecording, fs)
+            record_state.text(f"Done! Saved sample as {filename}.mp3")
+
+            st.audio(read_audio(path_myrecording))
+            r = sr.Recognizer()
+            audio_inp = sr.AudioFile('input.wav')
+            with audio_inp as source:
+                audio = r.record(source)
+                a= r.recognize_google(audio)
+                st.text(a)
+                inp = a
+    if inp!='':
+        clipsmap = open('clips.json','r')
+        f=json.load(clipsmap)
+        all_keys = [x.lower() for x in list(dict(f).keys())]
+        tokens=[x.lower() for x in inp.split()]
+        new_sent=[]
+        for token in tokens:
+            if token in all_keys:
+                new_sent.append(token)
+
+        concat_gesture([x.capitalize() for x in new_sent])
+        st.video('output.mp4')
+
+
+
+# Module 1 
+elif nav_select =='gesture2audio': 
     
     # Set the ouput options apart form text
-    ouput_options = ['Audio','Animation']
+    ouput_options = ['Audio with Text','Only Text']
     ouput_select = st.sidebar.radio("Audio Output",ouput_options)
 
     #Cache the model for testing 
@@ -77,7 +132,7 @@ if nav_select =='Module1 (gesture2audio/text/gesture)':
         #use the holistic moddel for full body detection
         with mp_full.Holistic(min_detection_confidence=0.5,min_tracking_confidence=0.5) as holistic:
             while(1):
-
+ 
                 #read the camera feed
                 _, image = cap.read()
 
@@ -110,17 +165,12 @@ if nav_select =='Module1 (gesture2audio/text/gesture)':
                         st.sidebar.text(" ".join(sent))
                         
                         #Play audio
-                        if ouput_select == 'Audio':
+                        if ouput_select == 'Audio with Text':
                             output=gTTS(" ".join(sent))
                             output.save("a.mp3")
                             playsound.playsound('a.mp3')
                         
-                        #Concat clips n play clips of animation
-                        elif ouput_select == 'Animation':
-                            sent.remove('Start')
-                            #concat_gesture(['Hello','Happy'])
-                            concat_gesture(sent)
-                            st.video('output.mp4')
+                        
                         
                         sent = []
                     # To ensure labels dont repeat concecutively
