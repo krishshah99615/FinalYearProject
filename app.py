@@ -2,7 +2,7 @@ import streamlit as st   # For Gui
 import mediapipe as mp   # For Keypoint Detection
 import pandas as pd      # For Data Manipulation
 import os                # Operating Sys Operations
-from utils import give_cord,give_vev,get_features_test,get_features,concat_gesture    #Custom Fucntions
+from utils import give_vev,get_features_test,get_features,concat_gesture    #Custom Fucntions
 import cv2                # Image manipulation and  webcam 
 import json               # Json processing
 import numpy as np        # numerical processing
@@ -135,7 +135,7 @@ elif nav_select =='gesture2audio':
     #only if the camera start is selected
     if start_cam:
         #use the holistic moddel for full body detection
-        with mp_full.Holistic(min_detection_confidence=0.5,min_tracking_confidence=0.5) as holistic:
+        with mp_full.Holistic(min_detection_confidence=0.5,min_tracking_confidence=0.5,upper_body_only=True) as holistic:
             while(1):
  
                 #read the camera feed
@@ -146,12 +146,18 @@ elif nav_select =='gesture2audio':
 
                 #Inference from keypoint model
                 results = holistic.process(image)
-                
+                if_left=False
+                if_right=False
                 #If Left Hand is detected (right cuz mirror image LOL)
                 if results.left_hand_landmarks:
 
                     #Get the features and reshape it for model infernce
-                    f = get_features_test(results)
+                    if results.left_hand_landmarks:
+                        if_left=True
+                    if results.right_hand_landmarks:
+                        if_right=True
+                    
+                    f = get_features_test(results,if_left,if_right)
                     f = np.array(list(f.values())).reshape(1,-1)
  
                     #Inference and Print the label
@@ -167,6 +173,7 @@ elif nav_select =='gesture2audio':
                     # If stop symbol reset the sentence 
                     if token == "Stop":
                         rec = False
+                        sent = [x for x in sent if not 'Start']
                         st.sidebar.text(" ".join(sent))
                         
                         #Play audio
@@ -243,7 +250,7 @@ elif nav_select == 'SelfTraining':
         #only if the camera start is selected
         if start_cam:
             #use the holistic moddel for full body detection
-            with mp_full.Holistic(min_detection_confidence=0.5,min_tracking_confidence=0.5) as holistic:
+            with mp_full.Holistic(min_detection_confidence=0.5,min_tracking_confidence=0.5,upper_body_only=True) as holistic:
                 while(1):
 
                     #read the camera feed
@@ -254,12 +261,18 @@ elif nav_select == 'SelfTraining':
 
                     #Inference from keypoint model
                     results = holistic.process(image)
-                    
+                    if_left=False
+                    if_right=False
                     #If Left Hand is detected (right cuz mirror image LOL)
-                    if results.left_hand_landmarks:
+                    if results.left_hand_landmarks or results.right_hand_landmarks:
 
                         #Get the features and reshape it for model infernce
-                        f = get_features_test(results)
+                        if results.left_hand_landmarks:
+                            if_left=True
+                        if results.right_hand_landmarks:
+                            if_right=True
+                        
+                        f = get_features_test(results,if_left,if_right)
                         f = np.array(list(f.values())).reshape(1,-1)
 
                         #Inference and Print the label
@@ -270,6 +283,7 @@ elif nav_select == 'SelfTraining':
                         status.title(None)
                     #Draw the mesh and keyponts
                     mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_full.HAND_CONNECTIONS)
+                    mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_full.HAND_CONNECTIONS)
                 
                     #Display the camera feed
                     image_disp.image(image,use_column_width=True)
@@ -341,7 +355,7 @@ elif nav_select == 'SelfTraining':
     # Data Collection Phase
     elif train_select=='Collecting':
 
-        #Initialize empty list for json
+        #Initialize  empty list for json
         data=[]
         #Gesture Parameters
         st.sidebar.header("Collecting Train Data")
@@ -376,7 +390,7 @@ elif nav_select == 'SelfTraining':
             col = st.sidebar.checkbox("Colllect Gesture Data")
 
             #using the holisting full body model
-            with mp_full.Holistic(min_detection_confidence=0.5,min_tracking_confidence=0.5) as holistic:
+            with mp_full.Holistic(min_detection_confidence=0.5,min_tracking_confidence=0.5,upper_body_only=True) as holistic:
                 while start_cam:
                     
 
@@ -388,20 +402,28 @@ elif nav_select == 'SelfTraining':
 
                     #model inference for keypoint detection
                     results = holistic.process(image)
-
+                    if_left=False
+                    if_right=False
+                  
                     # Code might break incase hand goes out of frame 
                     try:
 
                         #Drawuing points and mesh on the image
                         mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_full.HAND_CONNECTIONS)
-                        
+                        mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_full.HAND_CONNECTIONS)
+                       
                         #run only if collect data is selected
                         if col:
                             #print the counter value
                             collected.text("Collected : "+str(counter))
                             
-                            #Get 8 features[Mnually set] and append in the json  
-                            data.append(get_features(results,name))
+                            #Get 8 features[Mnually set] and append in the json 
+                            if results.left_hand_landmarks:
+                                if_left=True
+                            if results.right_hand_landmarks:
+                                if_right=True
+                            
+                            data.append(get_features(results,name,if_left,if_right))
                             
                             #increment the collection counter
                             counter=counter+1
@@ -419,7 +441,9 @@ elif nav_select == 'SelfTraining':
                                 #reset counter
                                 counter = 0
                                 break
-                    except AttributeError as a:
+                    except AttributeError as a:    
                         print(a)
                     #Display the camera input
                     image_disp.image(image,use_column_width=True)
+                    
+ 
