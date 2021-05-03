@@ -149,7 +149,7 @@ elif nav_select =='gesture2audio':
                 if_left=False
                 if_right=False
                 #If Left Hand is detected (right cuz mirror image LOL)
-                if results.left_hand_landmarks:
+                if results.left_hand_landmarks or results.right_hand_landmarks:
 
                     #Get the features and reshape it for model infernce
                     if results.left_hand_landmarks:
@@ -173,7 +173,7 @@ elif nav_select =='gesture2audio':
                     # If stop symbol reset the sentence 
                     if token == "Stop":
                         rec = False
-                        sent = [x for x in sent if not 'Start']
+                        sent = [x for x in sent if x!='Start']
                         st.sidebar.text(" ".join(sent))
                         
                         #Play audio
@@ -199,6 +199,7 @@ elif nav_select =='gesture2audio':
                     status.title(None)
                 #Draw the mesh and keyponts
                 mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_full.HAND_CONNECTIONS)
+                mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_full.HAND_CONNECTIONS)
             
                 #Display the camera feed
                 image_disp.image(image,use_column_width=True)
