@@ -38,13 +38,13 @@ st.header('Gesture Tool')
 st.text('Aiding disabled via AI')
 
 # different navigations pages
-nav_menu = ['gesture2audio','text/audio2speech','SelfTraining']
+nav_menu = ['gesture2audio','text/audio2gesture','SelfTraining']
 
 nav_select = st.sidebar.selectbox('Navigate',nav_menu)
 
 
 #Module 2:
-if nav_select=='text/audio2speech':
+if nav_select=='text/audio2gesture':
     #Select input mode
     
     input_options = ['Audio','Text']
