@@ -89,10 +89,11 @@ if nav_select=='text/audio2gesture':
         for token in tokens:
             if token in all_keys:
                 new_sent.append(token)
-
-        concat_gesture([x.capitalize() for x in new_sent])
-        st.video('output.mp4')
-
+        if len(new_sent)>0:
+            concat_gesture([x.capitalize() for x in new_sent])
+            st.video('output.mp4')
+        else:
+            st.sidebar.error("Not avaible in our dictonary")
 
 
 # Module 1 
