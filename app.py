@@ -349,8 +349,10 @@ elif nav_select == 'SelfTraining':
             
 
             cm=confusion_matrix(y_test,predictions)
+            cr=classification_report(y_test,predictions)
 
             fig, ax = plt.subplots(figsize=(3,3))
+            st.write(cr)
             sns.heatmap(cm,cbar=False,annot=True,xticklabels=list(label_encoder.classes_),yticklabels=list(label_encoder.classes_))
             st.write(fig)
     
